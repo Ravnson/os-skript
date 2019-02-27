@@ -1,0 +1,144 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage[margin=20mm]{geometry}
+\usepackage{tabto}
+
+\setlength{\parindent}{0mm}
+
+\begin{document}
+	
+	\title{OS Zusammenfassung}
+	\author{Grégoire Mercier}
+	
+	\maketitle
+	
+	\begin{abstract}
+		This lecture notes are for me to learn LaTeX and review the operating system lecture
+	\end{abstract}
+
+
+	\section{Introduction}
+	
+	\subsection{Overview}
+	
+	The Operating System
+	
+	\begin{itemize}
+		\item \textbf{Provides abstraction layer} \newline
+		Manages and hides hardware details \newline
+		Low-level interfaces to access hardware \newline
+		Multiplexes hardware to multiple programs \newline
+		makes hardware use effivient for applications
+		\item \textbf{Provides protection} from \newline
+		users/processes using up all resources \newline
+		processes writing into other processes memory \newline
+		\item \textbf{is a ressource manager} \newline
+		Manages and multiplexes hardware ressources \newline
+		Decides between conflicting requests for resource use \newline
+		Strives for efficient and fair resource use \newline
+		\item \textbf{is a control program} \newline
+		Controls execution of programs \newline
+		Prevents errors and improper use of the computer
+		
+	\end{itemize}
+	
+	There are no universally accepted definitions
+	
+	\subsection{Hardware}
+	
+	\textbf{CPU (Central Processing Unit)}
+	
+	\begin{itemize}
+		\item Fetches instructions from memory and executes them
+		\item Internal registers store data and metadata during execution
+		\item \textbf{User Mode (x86: "Ring 3" or CPL3)} \newline
+		Only non-privileged instructions, no hardware managment in this mode for protection
+		\item \textbf{Kernel Mode (x86: "Ring 0" or CPL0)} \newline
+		All instruction allowed, including privileged instructions \newline
+	\end{itemize}
+	
+	\textbf{RAM (Random Access Memory)} keeps currently execting instructions and data \newline
+	
+	\textbf{Caching}
+	\begin{itemize}
+		\item Ram delivers instruction/data slower than the CPU can execute
+		\item Memory references typically follow principle of locality
+		\item \textbf{Caching} helps mitigating this \textbf{Memory Wall} \newline
+		Informations in use are copyed from slower to faster storage. When needed, check whether it is in faster storage before going down in the Memory Hierarchy, then copy it to cache to be used from there
+	\end{itemize}
+	
+	\textbf{Acces times}
+	\begin{itemize}
+		\item CPU registers					\tab ~1 CPU cycle
+		\item L1 cache per core 			\tab ~4 CPU cycles
+		\item L2 cache per pair of cores	\tab ~12 CPU cycles
+		\item L3 cache						\tab ~28 CPU cycles (~25 GiB/s)
+`		\item DDR3-Ram						\tab ~28 CPU cycle for LLC + 50ns (~12 GiB/s)
+	\end{itemize}
+
+	\textbf{CPU Cache Organization}
+	\begin{itemize}
+		\item Caches divided up into cache lines (often 64 bytes each)
+		\item Separation of data and instructions in faster caches
+		\item \textbf{Cache hit}: Data already in cache
+		\item \textbf{Cache miss}: Data has to be fetched from lower level first
+		\item Types of Cache misses
+		\begin{itemize}
+			\item \textbf{Compulsory Miss}: first reference miss, data has never been accessed
+			\item \textbf{Capacity Miss}: cache not large enough for Working Set of process
+			\item \textbf{Conflict Miss}: cache still has space, but collision due to placement strategy
+		\end{itemize}
+	\end{itemize}
+
+	\textbf{Device Control}
+	
+	\begin{itemize}
+		\item Device controller accepts command from the OS via device driver
+		\item Control by writing into device register and read status by reading it
+		\item Data transfer by writing/reading device memory
+		\item Port-mapped I/O (PMIO) special CPU instructions to access port-mapped registers and memory
+		\item Memory-mapped I/O (MMIO) same address space for Ram and device memory
+	\end{itemize}
+
+	\hspace{5mm}Devices can signal the CPU through interrupts
+	
+	\subsection{OS Invocation}
+	
+	Operating System Kernel does \textbf{not} always run in the background
+	
+	Tree occasions invoke the Kernel and switch to kernel-mode
+	\begin{itemize}
+		\item System calls		\tab User-mode process requires higher privileges
+		\item Interrupts		\tab CPU-external device sends a signal
+		\item Exceptions		\tab CPU signals an unexpected condition
+	\end{itemize}
+	
+	\textbf{System Calls}
+	
+	The main Idea behind System calls is the nessecity to protect processes from one another. So processes are running in User-Mode. The OS provides services, which the applications can invoke in System Calls/syscalls, in order to get the action performed by the OS, on behalf of application
+	
+	Syscall interface between applicateions and OS provides a limited number of well-defined entry points to the kernel
+	
+	Application Program Interfaces (API) brings another level of abstraction between applications and Programmers (API invokes Syscalls invokes Kernel-Mode operations)
+	
+	One single entry point to the kernel for all System calls, the \textbf{trap}. Trap switches CPU to kernel mde and enters the kernal in the same, predefined way for every syscall. The system call dispatcher in the kernel acts as a multiplexer for all syscalls.
+	
+	syscalls identifyed by a number, passed as parameter, \textbf{system call table} maps \textbf{system call number} to kernel funktion, dispatcher decides where to jump based on the number and table.
+	
+	Programs have the System call number compiled in!
+	Never reuse old numbers in future versions of kernel
+	
+	\section{Processes}
+	
+	\subsection{Process Abstraction}
+	
+	Multiprogramming is the art of switching quickly between processes
+	
+	Process abstraction 
+	
+	\begin{itemize}
+		\item 
+	\end{itemize}
+	
+	
+\end{document}
