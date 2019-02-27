@@ -8,15 +8,15 @@
 
 \makeglossaries
 
-\newglossaryentry{virtual address}
+\newglossaryentry{vaddr}
 {	
-	name={virtual address},
+	name={virtual address (vaddr)},
 	description={address in process' address space}
 }
 
-\newglossaryentry{physical address}
+\newglossaryentry{paddr}
 {
-	name={physical address},
+	name={physical address (paddr)},
 	description={address of real memory}
 }
 
@@ -187,7 +187,7 @@
 	
 	\textbf{adress spaces}: every job has his own address space, so they can't reach other jobs adresses. Jobs only use virtual adresses. \newline
 	
-	\textbf{MMU (memory management unit)}: translates \gls{virtual address} to \gls{physical address}
+	\textbf{MMU (memory management unit)}: translates \gls{vaddr} to \gls{paddr}
 	
 	\begin{itemize}
 		\item allows kernel-only virtual addresses
@@ -243,9 +243,21 @@
 	
 	\subsection{Process Abstraction}
 	
-	Multiprogramming is the art of switching quickly between processes
+	Multiprogramming is the art of switching quickly between processes. Every process is processed in his own "virtual CPU". When switching processes, the execution context changes. On a  \textbf{context switch}, the dispatcher saves the current register and memory mappings and restores those of the next process.
 	
-	Process abstraction 
+	A program is a policy, the process is a mechanism.
+	
+	With n processes with a process spending p of his time waiting for I/O to complete, then CPU utilization = 1 - ${p^n}$. \newline
+	
+	\textbf{Concurrency}: Multiple processes on the same CPU
+	\textbf{Parallelism}: Processes truly rnning at the same time with multiple CPUs
+	
+	\section{Address Spaces}
+	
+	Programs can see more memory than aviable (80/20 rule: 80\% of the process memory idle, 20\% active working set). Keep working set in RAM, rest on disk.
+	
+	\textbf{address space layout}: 
+	
 	
 	\newpage
 	
