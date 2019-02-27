@@ -250,13 +250,49 @@
 	With n processes with a process spending p of his time waiting for I/O to complete, then CPU utilization = 1 - ${p^n}$. \newline
 	
 	\textbf{Concurrency}: Multiple processes on the same CPU
+	
 	\textbf{Parallelism}: Processes truly rnning at the same time with multiple CPUs
 	
 	\section{Address Spaces}
 	
 	Programs can see more memory than aviable (80/20 rule: 80\% of the process memory idle, 20\% active working set). Keep working set in RAM, rest on disk.
 	
-	\textbf{address space layout}: 
+	\textbf{address space layout}: Organization of code, data and state within process
+	Data can be \textbf{fixed sized}, \textbf{free'd in reverse order of allocation} or \textbf{allocated and free'd dynamically}
+	
+	The \textbf{loader} determines based on an executable file how an executed program is placed in memory \newline
+	
+	\textbf{Fixed-size Data and Code Segments}
+	\begin{itemize}
+		\item Data in a program, what has static size, allocated when process created
+		\item BSS Segment  (Block Started by Symbol) contains statically-allocated variables and not initialized variabels. The executable file contains the starting address and size of BSS, the entire segment is initially zero
+		\item Data segment contains fixed-size, initialized data elements such as global variables
+		\item Read-only data segment contains constant numbers and strings
+		\item Sometimes BSS, data, and read-only data segment are summarized as a single data segment
+	\end{itemize}
+	
+	\textbf{Stack Segment} \newline
+	Data is naturally free'd in reverse order of allocation. Fixed starting point of segment, store top at latest allocation SP (stack pointer). In current CPU, the stack segment typically grows downwards!	\newline
+	
+	\textbf{Heap Segment}
+	Some data needs to be allocated and free'd dynamically "at random", such as input/output, size of edited text, ... \newline
+	Allocate memory in two tiers: \newline
+	1. Allocate large chunk of memory (heap segment) fom OS, like stack allocation; base address + break pointer (BRK), process can change size by setting BRK \newline
+	2. Dynamically partition large chunk into smaller allocation dynamically, with \textit{malloc} and \textit{free}. This happens purely in user space!
+	
+	\subsection{Typical Process Address Space Layout}
+	\begin{itemize}
+		\item \textbf{OS}				\tab Adresses where the kernel is mapped 0xFFFFFFFF
+		\item \textbf{Stack}		 	\tab Local variables, function call parameters, return addresses
+		\item \textbf{Heap}				\tab Dynamically allocated data (malloc)
+		\item \textbf{BSS}				\tab Uninitialized local variables dclared as static
+		\item \textbf{Data}				\tab Initialized data, global variables
+		\item \textbf{RO-Data}		\tab Read-only data, strings
+		\item \textbf{Text}				\tab Program, machine code
+	\end{itemize}
+	
+	
+	
 	
 	
 	\newpage
