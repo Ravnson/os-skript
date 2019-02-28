@@ -181,7 +181,7 @@
 	
 	\section{OS Concepts}
 	
-	Early on, programs were load directly into \textbf{pysical memory}. If the program was too large, the  programmer had to manually partition his program into \textbf{overlays}. OS could swap between disk and memory.
+	Early on, programs were load directly into \textbf{physical memory}. If the program was too large, the  programmer had to manually partition his program into \textbf{overlays}. OS could swap between disk and memory.
 	
 	Problems: Buggy programs trash other programs, malicious jobs can read other program's operations, Jobs can take all memory for themself,...
 	
@@ -290,9 +290,63 @@
 		\item \textbf{RO-Data}		\tab Read-only data, strings
 		\item \textbf{Text}				\tab Program, machine code
 	\end{itemize}
+
+
+	\section{Threads}
+	In traditional OS, each process has it's own address space, set of allocated resources and one thread of execution. \newline
+	Modern OS handle the processes and treads of execution more flexibly. Processe provide the abstraction of an AS and address resources, while threads provide the abstraction for execution state of that AS/container. /par
+	Why using multiple Threads? \newline
+	So programs can handle many tasks at once. Without threads, some of the tasks could block each other. Many sequential threads are more easy to handle.
+	It depents on what is to be done in order to choose between threads and processes. If processes share data, they do it explizitly. Threads allow multiple tasks at once in a single process.
+	
+	\subsection{Thread Libraries}
+	Provide an API for creating and managing threads. Pthreads is the POSIX API for creation and synchronization. It specifies behaviour of the thread library.
+	
+	Each \textbf{Pthread} is associated with an identifier (Thread ID(TID)), a set of registers (including IP and SP) and a stack area holding the execution state of that thread.
+	
+	\begin{itemize}
+		\item Pthread\_create Create a new thread, passing pointer to pthread\_t (holding TID after successful call), attributes, start funcition and arguments, returning 0 on success or error value.
+		\item Pthread\_exit Terminate the calling thread, passing exit code, freeing ressources
+		\item Pthread\_join Wait for a specific thread to exit, passing pthread\_t to wait for (or -1 for any thread), pointer to pointer for exit code, returning 0 on success, otherwise error value
+		\item Pthread\_yield Release the CPU to let another thread run
+	\end{itemize}
+
+	Multithreaded programming is challenging, because there is more shared state than with processes, so more can possibly go wrong. Programmer needs to care about dividing, ordering, and balancing activities, dividing data and synchronize access to shared data.
+	
+	Processes group resources, threads encapsulate execution. There is a need to differentiate between
+	\begin{itemize}
+		\item \textbf{Process Control Block (PCB)}: Information needed to implement processes eg. Adress space, open file, child processes, pending alarms. \newline
+		The PCB is always known to the OS
+		\item \textbf{Thread control Block (TCB)}: Per thread data, eg IP, Registers, Stack, state. Depending on thread model the OS knows about threads or not.
+ 	\end{itemize}
+ 
+	\subsection{Thread Model Overviev}
+	
+	OS always knows of at least one thread per process. Threads that are known to the OS are called kernel threads. Threads that are known to the process are called user threads.
+	
+	\begin{itemize}
+		\item \textbf{Many-to-One Model}/Threads fully implemented in user-space: Kernel knows only knows one of possibly multiple threads, user threads are called \textbf{User Level Threads(ULT)}
+		\item \textbf{One-to-One Model}/Kernel fully aware of and responsible for managing threads: Each user thread maps to a kernel thread, user threads are called \textbf{Kernel Level Thread(KLT)}
+		\item \textbf{M-to-N Model}:Kernel knows some threads per process, but others are known only to the process, flexible mappint of user threads to less kernel threads. Known as hybrid thread model.
+	\end{itemize}
 	
 	
+	\textbf{Many-to-One Model: User Level Threads (ULT)} \newline
+	The kernel only manages the process, multiple threads are unknown to the kernel. That allows faster thread management operations, a more flexible scheduling policy, fewer system resources and cen be even used when OS does not support threads. But there is no parallel execution possible and if only one thread blocks, the entire process blocks. Also it is needed to reimlement parts of the OS. Linux defines some acitons as followed: \textbf{mkcontext\_t} and \textbf{ucontext\_t} to keep thread state, \textit{makecontext} (initialize a new context), \textit{getcontext} (store currently active context), \textit{setcontext} (replace current context with different one), \textit{swapcontext} (user-level context switching between threads). Periodic threadswitching can be implemented using a \textbf{SIGALRM} exception handler.
 	
+	Address Space Layout: The "main" part of the \textbf{Stack} is known to OS and is used by thread library. The own execution state for every thread is allocated dynamically on the heap, using \textit{malloc}. There is possibly an own stack for each exception handler. Concurrent \textbf{heap} possible. \newline
+	
+	\textbf{One-to-One Model: Kernel Threads (KLT)} \newline
+	The kernel knows and manages every thread, making real paralellism and individual thread block possible. On the downside, the OS manages every thread in the system, syscalls are needed for thread management and scheduling is fixed in OS.
+	
+	Address Space Layout: There is an own execution state ($\equiv$\textbf{stack}). Possibly own stack for each exception handler. Parallel \textbf{heap} use is possible, but not all heaps are thread-safe.
+	
+	Implementation and issues: all thread management data is stored in kernel, management funcions provided as syscalls. Signals are used in UNIX to notify a process that a particular event has occured. The signal handler can run on the process stack, on a stack dedicated to a specific signal handler or a a stack dedicated to all signals. \newline
+	
+	\textbf{M-to-M Model: Hybrid Threads} \newline
+	M ULTs are mapped to (at most) N KLTs, using pros of ULT and KLT: non-blocking with quick management. Provides flexible scheduling policiy and efficient execution, but is hard to implement and to debug.
+	
+	Implementation: Kernel is not involved in thread activities such as \textit{create} and \textit{join}. Reached by mapping multiple ULTs on each KLT, so when a ULT blocks, the user-space run-time system run a different ULT without switching to the kernel. \textbf{Upcalls}: Kernel notices, that a thread will block and sends a signal to the process. Upcall notifies the process of the thread id and event that happened. Exception handler of the process shedule a different thread in that process. Kernel later informs the process that the blocking event has finished via antother upcall.
 	
 	
 	\newpage
