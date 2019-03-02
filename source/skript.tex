@@ -415,14 +415,78 @@
 	\textbf{Implementation Considerations}: wait and signal need to be carefully synchronized, otherwise it could result in a race condition between checking and decrementing s. Aditionally, \textbf{signal loss} may occure when waking up threads and waiting at the same time. Each semaphore is associated with a wake-up queue: \textbf{weak semaphores} wake up a random waiting thread, \textbf{strong semaphores} wake up threads in the order in which thez started waiting. \newline
 	\textbf{Mutual exclusion}, \textbf{progress} and \textbf{bounded waiting} are solved. But every enter and leave are syscalls, which are slower than regular function calls. \newline
 	
-	\textbf{Fast User Space Mutex (futex)} \newline
+	\textbf{Fast User Space Mutex (futex)}
 	\begin{itemize}
 		\item Userspace and kernel component
 		\item Try to get into CS wit a userspace spinlock
 		\item If CS buisy, use a syscall to put thread to sleep
 		\item Otherwise enter CS lompletly in userspace
 	\end{itemize}
-		
+
+	\textbf{Classic synchronization Problems} \newline
+	
+	\textbf{Producer-Consumer Problem (bounded-buffer problem)}: Buffer shared between a producer and a consumer. \textit{int count} keeps track of number of aviable items. Producer produces items and place them into the buffer, incrementing \textit{count}. If buffer full, producer sleeps until consumer consumed an item. Consumer consumes items, removing them from the buffer and decrementing \textit{count}. If buffer empty, consumer has to sleep until producer produced an item. Solved with a mutex and 2 counting semaphores or condition variables (CV), which allow blocking until a condition is met, with following ideas: New operation that performs unlock, sleep, lock atomically, and new wake-up operation that is called with lock held. \newline
+	
+	\textbf{Readers-Writers Problem}: Many threads compete to read or write the same data, \textbf{readers} only read data, do not perform any updates, \textbf{writers} can both read and write. It is unnecessary to use a single mutex for read and write, blocking multiple readers while no writer is present. Idea: If no threads writes, multiple readers may be present, if a thread writes, no other readers and writers are allowed
+	\begin{itemize}
+		\item 1st Readers-Writers Problem: Readers Preference: Writers cannot aquire acces to CS until last reader leaves the section
+		\item 2nd Readers-Writers Problem: Writers Preference: No writers should be waiting longer than absolutely necessary
+		\item 1st and 2nd readers-writers problem have the same issue: Readers preference -> writers can starve, writers prefernce -> readers can starve
+		\item 3rd Readers-Writers Problem: No threads shall starve. Posix treads contains readers-writers lock to address this issue (\textit{pthread\_rwlock}). Multiple readers but only a single writer are let into the CS. If readers are present, while a writer tries to enter the CS, don't let further readers in, block until readers finish, let writer in.
+		Really difficult to imlement!
+	\end{itemize}
+	
+	\textbf{Dining-Philosopers Problem} \newline
+	Five philosophers are sitting around a table, each one has a plate of spaghetti in front of him, and there is one fork between each one. They can only eat, if they have two forks in their hand. Their cyclic workflow is: 1. Think, 2. Get hungry, 3. Grab one fork, 4. Grab another fork, 5. Eat, 6. Put down forks. No communication allowed, no "atomic" grab of both forks. Problem: What if the all grab their left fork at once. This problem is called \textbf{deadlock}. Workarounds: 4 Philosophers allowed at a table of 5 (\textbf{deadlock avoidance}), odd philosophers take left fork firt, even philosophers take right fork first (\textbf{deadlock prevention}) \newline
+	
+	\subsection{Deadlocks} 
+	Deadlocks can arise if all four conditions hold simultaneously:
+	\begin{itemize}
+		\item Mutual exclusion (Limited access to resource, resource can only be shared with a finite amount of users)
+		\item Hold and wait (wait for next resource while already hold at least one)
+		\item No preemption (once the resource is granted, it cannot be taken away but only handed back voluntarily)
+		\item Circular wait (possiblity of circularity in graph of requests)
+	\end{itemize}
+	
+	\textbf{Deadlock countermeasures}
+	\begin{itemize}
+		\item Prevention (pro-active, make deadlocks impossible to occur)
+		\item Avoidance (decide on allowed actions based on a-priori knowledge)
+		\item Detection (react after deadlock happened/revovery)
+	\end{itemize}
+	
+	\textbf{Deadlock Prevention} \newline
+	Negate at least one of the required deadlock conditions:
+	\begin{itemize}
+		\item Mutual exclusion - buy more resources, split into pieces, virtualize ("infinite" \# of instances)
+		\item Hold and wait - get all resources en-block, 2-phase-locking
+		\item No preemption - virtualize to make preemptable
+		\item Circular waiting - ordering of resources, prevent deadlocks with partial order on resources
+	\end{itemize}
+	
+	\textbf{Deadlock avoidance} \newline
+	On every resource request, decide if system stays in saft state, what needs a-priori information. Using Resource Allocation Graph (RAG).\newline
+	\textbf{RAG}
+	View system state as graph, processes are round nodes, resources are square nodes. Every instance of a resource is depicted as a dot in the resource node.\newline
+	Resource requests and assignmeents are edges:
+	\begin{itemize}
+		\item Resource pointing to process: Resource is assigned to process
+		\item Process pointing to resource: Process is requesting resource
+		\item Process may request resoure: Claim edge, depicted as dotted line
+	\end{itemize}
+	
+	\textbf{Deadlock Detection}
+	Allow system to enter deadlock, detect it, apply recovery scheme. \newline
+	Maintain \textbf{Wait-For Graph(WFG)}. Periodically invoce an algorithm that searches for a cycle in the graph, if there is a cycle, there exists a deadlock.\newline
+	\textbf{Recovery}: Abort all deadlocked processes/Abort one process at a time until the deadlock cycle is eliminated. \newline
+	
+	
+	\subsection{Implementation}
+	Synchronisation problems occur very often when programming operating systems, the parallelism introduced by multiple processors and the concurrency introduced by multiprogramming needs to be considered carefully when writing an operating system, poorly synchronized code can lead to starvation, priority inversion or deadlocks. \newline
+	
+	
+	
+	
 	
 	\newpage
 	
