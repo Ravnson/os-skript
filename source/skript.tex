@@ -348,6 +348,81 @@
 	
 	Implementation: Kernel is not involved in thread activities such as \textit{create} and \textit{join}. Reached by mapping multiple ULTs on each KLT, so when a ULT blocks, the user-space run-time system run a different ULT without switching to the kernel. \textbf{Upcalls}: Kernel notices, that a thread will block and sends a signal to the process. Upcall notifies the process of the thread id and event that happened. Exception handler of the process shedule a different thread in that process. Kernel later informs the process that the blocking event has finished via antother upcall.
 	
+	\section{Inter Process Communication (IPC)}
+	
+	Processes and Threads need to communicate with one another frequently. Process cooperate to share information, speed-up computing and provide modularity. IPC allows exchanging data between those processes, buy \textbf{Message passing} (explizitly send and recieve information using system calls) and \textbf{shared memory} (multiple processes using same memory regions). \newline
+	
+	\subsection{Message Passing}
+	Mechanism for process to communicate and synchronize their actions, providing operations to \textit{send} and \textit{recieve}. Implemented by using hardware bus, shared memory, kernel memory and the network interface card. \newline
+	
+	\textbf{Direct vs. Indirect Messages} \newline
+	\textbf{direct messages}: processes name each other explicitly when exchanging, by \textit{send(P, message)} (send a message to process P) and \textit{recieve(Q, message)} (recieve a message form process Q). \newline
+	\textbf{indirect messages}: can be sent and recieved from mailoxes. Each mailbox has a unique id. The first communicating process creates mailbox, last destroys mailbox. Process can only communicate if they share a mailbox.. \newline
+	
+	\textbf{Sender/Reciever Synchronization}
+	\begin{itemize}
+		\item Message passing may be either \textbf{blocking} or \textbf{non-blocking}
+		\item Blocking is considered \textbf{synchronous}
+		\item Non-blocking is considered \textbf{asynchronous}
+		\item Depending on buffering scheme, non-blocking sender can communicate with non-blocking reciever
+	\end{itemize}
+
+	\subsection{Buffering}
+	Messages are \textbf{queued} using different capacities while they are in-flight
+	\begin{itemize}
+		\item Zero capacity - 0 messages/no queuing: Sender must wait for reciever (\textbf{rendezvous}),message is transferred as soon as reciever becomes aviable (no latency/no jitter)
+		\item Bounded capacity - finite number and length of messages: Sender can send before reciever waits for messages, sender can send while reciever still processes previous messages, sender musst wait if link full
+		\item Unbounded capacity: Sender never waits, memory may overflow, potentially causing very large latency between send and recieve
+	\end{itemize}
+	
+	\subsection{Shared Memory}
+	Communicate through a region of shared memory. Processes have shared regions in one another AS. Threads "naturally" share address space. The semantics are application-specific. \newline
+	Tricky to get safety and high performance, especially if many processes and many CPUs are involved, due to \textbf{cache coherency protocol}, especially if there are multiple writers, due to {race conditions}. \newline
+	
+	\textbf{Sequential consistency (SC)} " The result of execution is as if all operations were executed in some sequential order, and the operations of each processor occurred in the order specified by the program", means that all memory operations occure one at a time in program order, ensuring write atomicity. \newline
+	CPU and compiler re-order instructions \textbf{execution order} for more efficient execution. Without SC, multiple processes on multiple cores behave "worse" than preemptive threads on a single core. They may give diffeerent results than when interleaving on one core. \newline
+	\textbf{Problems:}
+	\begin{itemize}
+		\item Modern CPUs are generally not sequentially consistent, because it would complicate write buffers, complicate non-blocking reades and make cache coherence more expensive
+		\item Compilers don not generate code in program order, they re-arrange loops for better performance, eliminate common subexpressions and cares about software pipelining
+		\item As long as a single thread accesses a memory location at a time, this is not a problem
+	\end{itemize}
+	\textbf{DON'T try to access the same memory location with multiple threads at the same time withouht proper synchroniyation!} \newline
+	
+	\section{Synchronization}
+	\textbf{Race Conditions} (assuming to have sequential memory consistency) \newline
+	Occures when two or more non-atomic instruction sequences operates at one time and may end up with a wrong result, because they were not done in the proper sequence. Even operation such as \textit{add count 1} may create race conditions. Only \textbf{interlocked operations} are safe (that implicates that there is only a single interlocked operation for the problem). Interlocked operations are more expensive than regular operations. \newline
+	General solution for the \textbf{critical section (CS) problem}: Put non-atomic instruction inside of a critical section. \newline
+	\textbf{Desired Properties for Solution to Critical-Section Problem}
+	\begin{itemize}
+		\item \textbf{Mutual Exclusion}: At most one thread can be in the CS at any time
+		\item \textbf{Progress}: No thread running outside of the CS may block another thread from getting in
+		\item \textbf{Bounded Waiting}: Once a thread starts trying to enter the CS, there is a bound on the number of times other threads get in
+	\end{itemize}
+	\textbf{Disabling Interrupts}: While in CS, thread cannot be interrupted, implemented with a "do not interrupt" (DNI) bit. \textit{enter\_critical\_section()} sets DNI bit, \textit{leave\_critical\_section} clears DNI bit, so when interrupts disabled, scheduler is never called. That is easy and convenient in the kernel, but only works in single-core systems, and only feasible in kernel, don't want to give user this power. \newline
+	Approach: \textbf{lock variable}: global \textit{lock}, enter CS if lock is 0, set it to 1 when entering, otherwise wait (\textbf{buisy waiting}), but that doesn't solve the CS problem, reading and setting lock is still not atomic. \newline
+	Test and set \textit{lock} atomically possible with x86 (\textit{xchg} atomically excaange memory content with a register). Implemented as \textbf{spinlock}. Solves \textbf{mutual exclusion}, \textbf{progress}, but not \textbf{bounded waiting}. Also spinlock doesn't work well
+	\begin{itemize}
+		\item if the lock is \textbf{congested} (large CS or many threads trying to enter)
+		\item if threads on different cores use the lock (expensive to keep memory coherency between cores)
+		\item when processes are scheduled with static priorities such as \textbf{priority inversion}, causing unexpected behaviour
+	\end{itemize}
+	Nevertheless, spinlocks are widely used, especially in kernels \newline
+	
+	\textbf{Semaphore} \newline
+	Idea: busy part of busy waiting is a spinlock limitation. So let threads sleep on locks and wake them up one at a time when lock becomes free. \newline
+	Introduce two syscalls, operating on integer variables called \textbf{semaphore}: \textit{wait( \&s )} and \textit{signal( \&s )}. \textit{s} is initialized to maximum number of threads that may enter the CS at any given time. A semaphore initialzed to 1 is called \textbf{binary semaphore}, \textbf{mutex semaphore} or just \textbf{mutex}. \textbf{counting semaphores} allows more than one thread in the CS. \newline
+	\textbf{Implementation Considerations}: wait and signal need to be carefully synchronized, otherwise it could result in a race condition between checking and decrementing s. Aditionally, \textbf{signal loss} may occure when waking up threads and waiting at the same time. Each semaphore is associated with a wake-up queue: \textbf{weak semaphores} wake up a random waiting thread, \textbf{strong semaphores} wake up threads in the order in which thez started waiting. \newline
+	\textbf{Mutual exclusion}, \textbf{progress} and \textbf{bounded waiting} are solved. But every enter and leave are syscalls, which are slower than regular function calls. \newline
+	
+	\textbf{Fast User Space Mutex (futex)} \newline
+	\begin{itemize}
+		\item Userspace and kernel component
+		\item Try to get into CS wit a userspace spinlock
+		\item If CS buisy, use a syscall to put thread to sleep
+		\item Otherwise enter CS lompletly in userspace
+	\end{itemize}
+		
 	
 	\newpage
 	
