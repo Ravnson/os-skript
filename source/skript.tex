@@ -8,6 +8,12 @@
 
 \makeglossaries
 
+\newglossaryentry{fragmentation}
+{
+	name={fragmentation},
+	description={The inability to use free memory}
+}
+
 \newglossaryentry{vaddr}
 {	
 	name={virtual address (vaddr)},
@@ -484,6 +490,71 @@
 	\subsection{Implementation}
 	Synchronisation problems occur very often when programming operating systems, the parallelism introduced by multiple processors and the concurrency introduced by multiprogramming needs to be considered carefully when writing an operating system, poorly synchronized code can lead to starvation, priority inversion or deadlocks. \newline
 	
+	\section{Memeory Mamagement Hardware}
+	Main memory and register are only storage that the CPU can access directly. Programs must be brought into memory from background storage and placed within a process' address space for it to be run. Multiple processes can be run concurrently even without memory abstraction (swapping, static relocation).
+	
+	\textbf{Swapping} \newline
+	Denotes saving a program's state on background storage (roll-out) and replacing it with another programs's state (roll-in). \newline
+	Pros: Only needs hardware support to protect the kernel, but not to protect processes from each other. \newline
+	Contras: Very slow, at every point in time only one process runs (no parallelism). \newline
+	
+	\textbf{static relocation} \newline
+	Every Program gets the same address space, resulting in no protection, no dynamic allocation, wanting programs to co-exist peacefully. \newline
+	
+	\textbf{Desired properties when sharing physical memory}
+	\begin{itemize}
+		\item Protection
+		\item Transparency
+		\item Resource exhaustion
+	\end{itemize}
+
+	\subsection{Memory-Management Unit (MMU)}
+	Hardware support is needed to achieve safe and secure protection. Hardware device maps virtual to physical address, so the user program deals with virtual addresses. \newline
+	
+	\textbf{Base and Limit Registers} \newline
+	Idea: Provide protection and dynnamic relocation in the MMU, introducing special base and limit registers. On every load/store the MMU checks whether the virtual address is larger or equal to \textit{base} and smaller than \textit{base+limit}, then use the virtual address as the physical address in memory. \newline
+	In order to protect the OS from processes, the main memory is splitted in two partitions, the OS usually held in low memory with interrupt vector, user processes are held in high memory, so OS can acces all process partitions, but MMU denies processes access to OS memory.\newline
+	Pros: Straigth forwared to implement MMU, and very quick at run-time \newline
+	Cons: no possiblity to grow address space and no sharing of code and/or data \newline
+	
+	\textbf{Segmentation} \newline
+	A possible solution for shortcomings of Base+Limit approach is using multiple base+limit register pairs per process, in order to keep some segments private, and share others. \newline
+	Now a virutal address consists of a tuple (segment \#, offset), so each process has a segment table, mapping virtual address to physical addresses in memory (\textbf{base} is the starting physical address where the segment resides in memory, \textbf{limit} is the length of the segment, \textbf{protection} provides access restriction to make safe sharing possible). The MMU has two registers that identify the current address space, the \textbf{Segment-table base register (STBR)} points to the segment table location of the cuffent process, the \textbf{Segment-table length register (STLR)} indicates the number of segments used (segment \# is legal, if it is $<$ STLR). \newline
+	Pros: Makes data/code sharing between processes possible without compromising confidentiality and safety/security, Processes doesn't need larch contiguous physical memory area, don't need entire process in memory \newline
+	Cons: Segment need to be kept contiguous in physical memory, Fragmentation of physical memory. \newline
+	
+	\textbf{External Fragmentation} \newline
+	Sum of free memory satisfies requested amount of memory, although contiguous memory would be required. Can be reduced through compaction, means closing gabs by moving allocated memory in one direction, resulting in large free blocks on the other side. Thats only possible if relocation is dynamic and can be done at execution time. Its expensive though and should be avoided. \newline
+	
+	\textbf{Paging} \newline
+	Dividing physical memory into fixed-size blocks called \textbf{page frames}, whose size are a power of 2 Bytes, typically 4KiB, 2 MiB, 4 MiB, and dividing virtual memory into blocks called \textbf{pages}, with the same size aviable as for frames. The OS keeps a \textbf{page table}, that stores mappings between \textbf{virtual page numbers (vpn)} and \textbf{page frame numbers (pfn)} for each AS. It keeps track of all free frames and modifies page tables as needed. So to run a program of n pages, its needed to find n free frames and load the program into them. \newline
+	A \textbf{Present Bit} in the page table indicates if a virtual page is currently mapped to physical memory. The MMU reads the page table and autonomously translates valid mappings. If a process issues an instruction to acess a virtual address that is currentlz not mapped, the MMU calls the OS to bring in the data (\textbf{page fault)}. \newline
+	Virtual address is divided into \textbf{virtual page number} (Index into the page table which contains base address of each page in physical memory) and \textbf{Page offset} (concatenated with base address results in physical address)\newline
+	
+	\textbf{Hierarchical Page Table}\newline 
+	The complete table is not needed for each AS, most virtual addresses are not used by process. So the virtual addresses are subdivided into further multiple page table indices $p_n$, forming a hierarchical page table.
+	
+	\textbf{Intel x86-64 Page Table Hierarchy as example} \newline
+	
+	\textbf{Page Table Entry Content}
+	\begin{itemize}
+		\item \textbf{Valid Bit}: Whether the page is currently aviable in memory or needs to be brought in by the OS, via a page fault, before accessing it (Present Bit)
+		\item \textbf{Page Frame Number}: If the page is present, at which physical address the page is currently located
+		\item \textbf{Write Bit}: If the page may be written to. When a process writes to a page with a clear bit, the MMU halts the poeration and raises a page-fault
+		\item \textbf{Caching}: If this page should be cached at all and with which policy
+		\item \textbf{Accessed Bit}: Set by the MMU if page was touched since the bit was last cleared by the OS
+		\item \textbf{Dirty Bit}: Set by the MMU if this page was modified since the bit was last cleared by the OS
+	\end{itemize}
+	
+	The OS performes all operations that require semantic knowledge:
+	\begin{itemize}
+		\item Page allocation/bringing data into memory
+		\item Page replacement
+		\item Context switch
+	\end{itemize}
+	
+	\textbf{Internal Fragmentation} \newline
+	Paging elimiates external fragmatation, but internal fragmentation becomes a problem: Memory can only be allocated in fixed page frame size, but an allocated virtual memory will generally not end at a page boundary. The unused rest of the page cannot be used by other allocations and is lost \newline
 	
 	
 	
