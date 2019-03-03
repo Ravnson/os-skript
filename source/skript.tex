@@ -556,6 +556,43 @@
 	\textbf{Internal Fragmentation} \newline
 	Paging elimiates external fragmatation, but internal fragmentation becomes a problem: Memory can only be allocated in fixed page frame size, but an allocated virtual memory will generally not end at a page boundary. The unused rest of the page cannot be used by other allocations and is lost \newline
 	
+	\textbf{Linear Inverted Page Table} \newline
+	Following Problem: Large AS (64-bit) but only few virtual addresses are mapped. That results in much memory wasted on page tables in the system, and slow lookup due to many levels of hierarchy. That can be solved by Inverted page table mapping: Map physical frame to virtual page instead of the other way around, what leads to a single page table for all processes, and one page table entry for each physical page frame. \newline
+	Pros: Less overhead for page table meta date \newline
+	Cons: Increases time needed to search the table when a page reference occurs \newline
+	
+	\textbf{Hashed Inverted Page Table} \newline
+	\textbf{Hach anchor table} is added before the actual page table. It is at least as large as the page table, and maps virtual page numbers and process IDs to page table entries.
+	
+	\subsection{Translation Lookaside Buffer}
+	Note: Naïve paging is slow \newline
+	Make it faster by adding a cache that stores recent memory translations: \textbf{Translation Lookaside Buffer (TLB)} maps (vpn) to (pfn, protection). \newline
+	On every load/store check if translation is already chached in TLB (\textbf{TLB hit}), otherwise walk page tables and insert result into TLB (\textbf{TLB muss}). Can compare many TLB entries in parallel in hardware. \newline
+	
+	\textbf{TLB Miss} \newline
+	On TLB miss, evict an entry vrom TLB, in order to get space for the looked-up one, and load the an entry for the missing virtual address into the TBL. \newline
+	TLB can be software-managed or hardware-managed:
+	\begin{itemize}
+		\item \textbf{Software-managed TLB}: OS recieves \textbf{TLB miss exception}, decides witch entry to evict from TLB and walks page tables in software to fill new TLB entry. TLB entry format is specified in \textbf{instruction set architecture (ISA)}. (E.g. MIPS)
+		\item \textbf{Hardware-managed TLB}:  Evict a TLB entry based on a policy encoded in hardware without involving the OS. Walke page tables in hardware to resolve address mapping. (E.g. x86-64, ARM)
+	\end{itemize}
+
+	\textbf{Address Space Identifiers} \newline
+	Problem: vpn is dependent on AS, vpn in different AS can map to different pfns, so it is required to clear TLB on AS switch. \newline
+	Add additional identifiers in the TLB to solve this problem. Now the TLB has Address space Identifiers (ASID) in every entry, it maps (vpn, ASID) to (pfn, protection), resulting in less TLB misses. \newline
+	
+	\textbf{TLB Reach} \newline
+	Also named \textbf{TLB Coverage}: The amount of memory accesible with TLB hits (TLB reach = TLB size * Page size). Ideally the working set of each process is stored in the TLB, otherwise there is a high degree of TLB misses. \newline
+	
+	\textbf{Effective Access Time}
+	\begin{itemize}
+		\item Assiocative lookup takes $\tau$ time units
+		\item A memory cycle takes $\mu$ time units
+		\item TLB hit ratio $\alpha$ (Percentage of all memory accesses whose translation is already cached in)
+	\end{itemize}
+	\textbf{Effective Acces Time (EAT)} for linear page table without cache: \newline
+	EAT = ($\tau$ + $\mu$) $\cdot$ $\alpha$ + ($\tau$ + 2 $\cdot$ $\mu$) $\cdot$ (1 - $\alpha$) = $\tau$ + 2 $\cdot$ $\mu$ - $\mu$ $\cdot$ $\alpha$
+	
 	
 	
 	
